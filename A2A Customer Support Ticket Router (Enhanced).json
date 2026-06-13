@@ -1,0 +1,364 @@
+{
+  "name": "A2A Customer Support Ticket Router (Enhanced)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "031bb24b-2e16-4eb3-afe1-8ad74f22f6f0",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1648,
+        272
+      ],
+      "webhookId": "chat-support-enhanced"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a customer support sentiment and urgency analyzer.\n\nCustomer message: {{ $json.chatInput }}\n\nAnalyze the message and respond with ONLY a JSON object in this exact format, nothing else:\n{\n  \"sentiment\": \"positive\" or \"neutral\" or \"negative\" or \"angry\",\n  \"urgency\": \"low\" or \"medium\" or \"high\",\n  \"reason\": \"one short sentence explaining urgency\"\n}",
+        "options": {}
+      },
+      "id": "5b0a12f3-4a4a-467e-825d-ec139dcd7d8b",
+      "name": "Sentiment Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -1504,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a support ticket classifier.\n\nCustomer message: {{ $('Chat Trigger').item.json.chatInput }}\nSentiment: {{ $('Sentiment Agent').item.json.output }}\n\nRespond with ONLY one of these three words and nothing else:\nbilling\ntechnical\ngeneral",
+        "options": {}
+      },
+      "id": "170b10f0-4267-412f-a4c5-350fadb4e970",
+      "name": "Classifier Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -1232,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a friendly customer support agent.\n\nTicket category: {{ $('Classifier Agent').item.json.output }}\nSentiment analysis: {{ $('Sentiment Agent').item.json.output }}\nCustomer message: {{ $('Chat Trigger').item.json.chatInput }}\n\nWrite a concise, helpful email reply to this customer.\nIf sentiment is angry or urgency is high, be extra empathetic and apologetic.\nStart with \"Hi there,\" and end with \"Best regards, Support Team\".",
+        "options": {}
+      },
+      "id": "078dc25e-16f0-4cad-8bf1-121a3a6d22df",
+      "name": "Response Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -960,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a quality assurance judge for customer support responses.\n\nOriginal customer message: {{ $('Chat Trigger').item.json.chatInput }}\nTicket category: {{ $('Classifier Agent').item.json.output }}\nDraft reply: {{ $('Response Agent').item.json.output }}\n\nEvaluate the draft reply and respond with ONLY a JSON object in this exact format:\n{\n  \"score\": <number 1-10>,\n  \"tone\": \"professional\" or \"too_formal\" or \"too_casual\",\n  \"empathy\": \"high\" or \"medium\" or \"low\",\n  \"clarity\": \"clear\" or \"vague\" or \"confusing\",\n  \"verdict\": \"approved\" or \"needs_revision\",\n  \"feedback\": \"one sentence of constructive feedback\"\n}",
+        "options": {}
+      },
+      "id": "167c1c0d-351b-45f3-b931-de8e155be5f4",
+      "name": "Quality Judge Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -608,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a senior escalation specialist for critical customer issues.\n\nThis ticket has been flagged for escalation.\n\nCustomer message: {{ $('Chat Trigger').item.json.chatInput }}\nCategory: {{ $('Classifier Agent').item.json.output }}\nSentiment analysis: {{ $('Sentiment Agent').item.json.output }}\nOriginal draft: {{ $('Response Agent').item.json.output }}\nQuality review: {{ $('Quality Judge Agent').item.json.output }}\n\nWrite an upgraded, high-priority escalation response. Be more empathetic, more specific, and offer a concrete next step (callback, ticket ID, senior review). Start with \"Hi there,\" and end with \"Best regards,\\nSenior Support Team — Priority Escalation\".",
+        "options": {}
+      },
+      "id": "80212033-f832-4a49-a470-921028f90ccf",
+      "name": "Escalation Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        80,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a ticket logging agent. Summarize this support interaction in a structured format.\n\nCustomer message: {{ $('Chat Trigger').item.json.chatInput }}\nCategory: {{ $('Classifier Agent').item.json.output }}\nSentiment: {{ $('Sentiment Agent').item.json.output }}\nFinal reply: {{ $('Response Agent').item.json.output }}\nQuality score: {{ $('Quality Judge Agent').item.json.output }}\n\nRespond with ONLY a JSON object in this format:\n{\n  \"ticket_id\": \"TKT-{{ $now.toFormat('yyyyMMddHHmmss') }}\",\n  \"category\": \"<category>\",\n  \"urgency\": \"<urgency from sentiment>\",\n  \"sentiment\": \"<sentiment>\",\n  \"summary\": \"<one sentence describing the issue>\",\n  \"resolution\": \"<one sentence describing the response given>\",\n  \"quality_score\": <number>,\n  \"escalated\": false,\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "id": "4f58636e-3f43-4abd-9665-7592c965459d",
+      "name": "Ticket Summary Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -304,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a52bee07-5d80-4221-9d86-9e94a9234f04",
+      "name": "Gemini - Sentiment",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1440,
+        368
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Yx0eyTD19ycT924",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d180163a-a0a2-4fc9-b8d2-997880c26210",
+      "name": "Gemini - Classifier",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1232,
+        352
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Yx0eyTD19ycT924",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a30db01f-f89a-4dad-9c71-4bb3a32421c8",
+      "name": "Gemini - Response",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        352
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Yx0eyTD19ycT924",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "6f4aaee2-653f-4e18-920e-fbf4d9a3b278",
+      "name": "Gemini - Judge",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        352
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Yx0eyTD19ycT924",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "f48eaeb8-2fee-482f-9f1d-8f2dd8218549",
+      "name": "Gemini - Escalation",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        352
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Yx0eyTD19ycT924",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "fb931177-340d-4abe-ae0e-9c09164411c8",
+      "name": "Gemini - Summary",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        480
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Yx0eyTD19ycT924",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sentiment Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sentiment Agent": {
+      "main": [
+        [
+          {
+            "node": "Classifier Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classifier Agent": {
+      "main": [
+        [
+          {
+            "node": "Response Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Agent": {
+      "main": [
+        [
+          {
+            "node": "Quality Judge Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quality Judge Agent": {
+      "main": [
+        [
+          {
+            "node": "Escalation Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ticket Summary Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Sentiment": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Sentiment Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Classifier": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classifier Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Response": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Response Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Judge": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Quality Judge Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Escalation": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Escalation Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Summary": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Ticket Summary Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "906896b6-d82a-4e41-b67e-201c125e2ee5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9eec91ab028da3044b893ad93da376fcd67c0d37224cdead88c7c3ba95ce47dc"
+  },
+  "id": "2VdMSamlZ50Ekn4eiEz2E",
+  "tags": []
+}
